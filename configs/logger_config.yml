@@ -1,0 +1,28 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  json:
+    format: '{"time": "%(asctime)s", "level": "%(levelname)s", "name": "%(name)s" "message": "%(message)s"}'
+    datefmt: "%Y-%m-%dT%H:%M:%S%z"
+
+handlers:
+  stderr:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: json
+    stream: ext://sys.stderr
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: json
+    filename: logs/chat_app.log.jsonl
+    maxBytes: 10485760
+    backupCount: 10
+
+loggers:
+  tg_logger:
+    level: DEBUG
+    handlers:
+      - stderr
+      - file
+    propagate: no
