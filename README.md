@@ -25,13 +25,10 @@ source .venv/bin/activate
 # 3. Install dependencies
 uv pip install -r requirements.txt
 
-# 4. Install colorlog for colored console output (optional)
-uv pip install colorlog
-
-# 5. Run logger test
+# 4. Run logger test
 python test_tg_logger.py
 
-# 6. Check logs in 'logs/'-directory
+# 5. Check logs in 'logs/'-directory
 ls logs
 ```
 
