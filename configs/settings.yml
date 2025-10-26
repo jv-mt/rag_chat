@@ -1,0 +1,37 @@
+source_loader:
+  tags_by_name: 
+  -  style
+  -  script
+  -  dialog
+  -  header
+  -  footer
+  -  aside
+  -  meta
+  -  title
+  tags_by_classname:
+    a: 
+    -  button-primary-icon
+    -  link-list lock
+    -  scroll-to-top no-external-link-indicator
+    -  skip-link screen-reader-text js-trigger
+    button: 
+    -  search-bar-close
+    div: 
+    -  breadcrumb-item
+    -  col-12 col-lg-4 block-link-lifts__column
+    -  link-lifts block-link-lifts
+    -  mobile-menu
+    -  mobile-menu__section
+    -  mobile-menu__section mobile-menu__section--button
+    -  search-group
+    -  site-footer__links
+    li: 
+    -  menu-item page-item-484 menu-item__level-1
+    -  menu-item page-item-484 menu-item__level-1 page_item_has_children menu-item-has-childrenHome Preparing written assignments at Jamk University of Applied Sciences
+    nav:
+    -  nav-primary
+    -  rnb-breadcrumbs
+    span: 
+    -  sub-menu__toggle-text
+    ul: 
+    -  nav-primary__menu-items

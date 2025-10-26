@@ -5,7 +5,6 @@ RAG Chat implementation
 """
 # 🧰 Environment Setup and Logger Test (uv + Python)
 
-This project includes a simple Python logger (`tg_logger.py`) and a test script (`test_tg_logger.py`).  
 Below are the steps to set up the development environment using the **uv** package manager on Ubuntu 24.04 (or similar systems).
 
 ---

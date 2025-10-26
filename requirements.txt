@@ -1,2 +1,10 @@
 PyYAML
 colorlog
+langchain-core
+langchain-chroma
+langchain-ollama
+langchain-text-splitters
+beautifulsoup4
+pymupdf
+pymupdf4llm
+sentence-transformers
