@@ -8,3 +8,5 @@ beautifulsoup4
 pymupdf
 pymupdf4llm
 sentence-transformers
+colorlog
+

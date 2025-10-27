@@ -57,14 +57,6 @@ from tg_logger import setup_logger
 
 logger = setup_logger()
 
-# Constants
-COLLECTION_NAME = "docs"
-PERSIST_DIRECTORY = "./db"
-OLLAMA_EMBEDDINGS_MODEL = "mxbai-embed-large"
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 100
-DEFAULT_K = 3
-
 
 class DB_Manager:
     """
@@ -91,7 +83,6 @@ class DB_Manager:
     def __init__(
         self,
         config_file: str = "configs/settings.yml",
-        persist_directory: str = PERSIST_DIRECTORY,
     ):
         """
         Initialize the Database Manager.
@@ -111,7 +102,7 @@ class DB_Manager:
         self.embeddings = None
         self.vector_database = None
         self.collection = None
-        self.persist_directory = persist_directory
+        self.persist_directory = self.config["database"]["persist_directory"]
         self.setup_vector_database()
 
     def setup_vector_database(self):
@@ -140,21 +131,23 @@ class DB_Manager:
             # device = torch.device("cpu")
             # logger.debug(f"Device: {device}")
             # logger.debug(f'device.hasattr(to): {hasattr(self.embeddings, "to")}')
-            self.embeddings = OllamaEmbeddings(model=OLLAMA_EMBEDDINGS_MODEL)
+            self.embeddings = OllamaEmbeddings(
+                model=self.config["database"]["ollama_embeddings_model"]
+            )
             # if hasattr(self.embeddings, "to") and callable(self.embeddings.to):
             #     self.embeddings.to(device)
             #     logger.debug(f"Embeddings moved to {device}")
             logger.debug(f"Embeddings:{self.embeddings}")
         if self.vector_database is None:
             self.vector_database = Chroma(
-                collection_name=COLLECTION_NAME,
+                collection_name=self.config["database"]["collection_name"],
                 persist_directory=self.persist_directory,
                 embedding_function=self.embeddings,
             )
         logger.debug(f"Vector database:{self.vector_database}")
         if self.collection is None:
             self.collection = self.vector_database._client.get_or_create_collection(
-                COLLECTION_NAME
+                self.config["database"]["collection_name"]
             )
         logger.debug(f"Collection:{self.collection}")
 
@@ -308,7 +301,8 @@ class DB_Manager:
             ...     print(f"Chunk {i}: {chunk[:50]}...")
         """
         text_splitter = SentenceTransformersTokenTextSplitter(
-            chunk_overlap=CHUNK_OVERLAP
+            chunk_size=self.config["database"]["chunk_size"],
+            chunk_overlap=self.config["database"]["chunk_overlap"],
         )
         try:
             chunks = text_splitter.split_text(s)
@@ -442,6 +436,8 @@ class DB_Manager:
             ...     print("---")
         """
         logger.debug(f"{self}.retrieve({query})")
-        docs = self.vector_database.similarity_search_with_score(query, k=DEFAULT_K)
+        docs = self.vector_database.similarity_search_with_score(
+            query, k=self.config["database"]["default_k"]
+        )
         logger.debug(f"Found {len(docs)} documents with query:{query}")
         return docs
