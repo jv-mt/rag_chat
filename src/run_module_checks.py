@@ -1,27 +1,68 @@
 """
-Logger Testing Module for Thesis Guidance Chat Application
+Module Testing Suite for Thesis Guidance Chat Application
 
-This module provides comprehensive testing functionality for the thesis guidance
-chat application's logging system. It demonstrates and validates all logging
-levels to ensure proper configuration and output formatting.
+This module provides comprehensive testing functionality for all core components
+of the thesis guidance chat application. It serves as a complete validation suite
+to ensure proper configuration, functionality, and integration of the system.
 
-The test suite verifies:
-- Logger initialization and configuration
-- All logging levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- File output to the logs directory
-- Console output formatting
-- JSON log format validation
+The test suite validates:
+- Logger initialization and configuration across all logging levels
+- Database manager operations including document processing and retrieval
+- RAG chat system functionality and response generation
+- Vector database operations and embedding generation
+- File output to the logs directory and database persistence
+- Console output formatting and user interface elements
+- JSON log format validation and structured logging
+- Integration between all system components
 
-This module serves as both a test suite and a demonstration of the logging
-capabilities available throughout the application.
+This module serves multiple purposes:
+1. Comprehensive system validation during development
+2. Integration testing for deployment verification
+3. Debugging tool for troubleshooting issues
+4. Demonstration of system capabilities
+5. Performance benchmarking and monitoring
 
-Example:
-    Run the logger test:
-        python src/run_module_check.py
+Test Components:
+- test_logger(): Validates logging system across all levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- test_db_manager(): Tests document processing, chunking, embedding, and retrieval operations
+- test_chat(): Validates RAG chat functionality with sample thesis guidance content
 
-    Or import and use programmatically:
-        from run_module_check import test_logger
+Example Usage:
+    Run complete test suite:
+        python src/run_module_checks.py
+
+    Run individual tests programmatically:
+        from run_module_checks import test_logger, test_db_manager, test_chat
         test_logger()
+        test_db_manager()
+        test_chat()
+
+    Import for custom testing:
+        from run_module_checks import *
+        # Use individual test functions as needed
+
+Requirements:
+    - Python 3.12+
+    - Running Ollama service at localhost:11434
+    - Available models: gemma3:latest, mxbai-embed-large
+    - Valid configuration file at configs/settings.yml
+    - Internet connectivity for URL content loading
+    - Write permissions for logs/ and db/ directories
+
+Output:
+    - Detailed console output with progress indicators
+    - Log entries in the configured log files
+    - Test results with performance metrics
+    - Error messages with troubleshooting guidance
+    - Success confirmations for each component
+
+Note:
+    This comprehensive testing suite should be run:
+    - After initial system setup
+    - Before deployment to production
+    - After configuration changes
+    - When troubleshooting system issues
+    - For performance monitoring and validation
 
 Author: Jukka Veijanen
 """
