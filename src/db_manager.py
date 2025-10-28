@@ -51,8 +51,6 @@ import yaml
 import sqlite3
 import gc
 
-# import torch
-
 from tg_logger import setup_logger
 
 logger = setup_logger()
@@ -120,7 +118,6 @@ class DB_Manager:
 
         Side Effects:
         - Creates persistence directory if it doesn't exist
-        - Initializes embeddings model on CPU device
         - Creates or connects to Chroma database
         - Sets up document collection
         """
@@ -128,15 +125,9 @@ class DB_Manager:
         if not os.path.exists(self.persist_directory):
             os.makedirs(self.persist_directory)
         if self.embeddings is None:
-            # device = torch.device("cpu")
-            # logger.debug(f"Device: {device}")
-            # logger.debug(f'device.hasattr(to): {hasattr(self.embeddings, "to")}')
             self.embeddings = OllamaEmbeddings(
                 model=self.config["database"]["ollama_embeddings_model"]
             )
-            # if hasattr(self.embeddings, "to") and callable(self.embeddings.to):
-            #     self.embeddings.to(device)
-            #     logger.debug(f"Embeddings moved to {device}")
             logger.debug(f"Embeddings:{self.embeddings}")
         if self.vector_database is None:
             self.vector_database = Chroma(

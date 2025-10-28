@@ -13,7 +13,7 @@ Key Features:
 - Comprehensive prompt engineering to prevent hallucination
 - Integration with Ollama LLM framework
 - Structured logging for debugging and monitoring
-- Configurable model selection
+- Configurable model selection and prompt templates
 
 Example:
     Basic usage:
@@ -30,11 +30,63 @@ Author: Jukka Veijanen
 
 from langchain_ollama import ChatOllama
 from tg_logger import setup_logger
+import yaml
+import os
 
 logger = setup_logger()
 print(f"Logger set up: {logger.name}")
 
-CHAT_MODEL = "gemma3:latest"
+
+def load_config(config_file="configs/settings.yml"):
+    """
+    Load chat configuration from YAML file.
+
+    Args:
+        config_file (str): Path to configuration file
+
+    Returns:
+        dict: Chat configuration dictionary
+
+    Raises:
+        FileNotFoundError: If configuration file doesn't exist
+        yaml.YAMLError: If configuration file is invalid
+    """
+    try:
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+        # chat_config = config.get("chat", {})
+        logger.debug(f"Configuration loaded from {config_file}")
+        return config
+    except FileNotFoundError:
+        logger.warning(f"Configuration file not found: {config_file}, using defaults")
+        return {}
+    except yaml.YAMLError as e:
+        logger.error(f"Invalid YAML configuration: {e}, using defaults")
+        return {}
+
+
+# Load configuration
+config = load_config()
+
+# Extract configuration values with fallbacks
+CHAT_MODEL = config["models"]["default_model"]
+
+# Chat configuration
+_chat_config = config.get("chat", {})
+DEFAULT_TEMPERATURE = _chat_config.get("temperature", 0.0)
+DEFAULT_BASE_URL = _chat_config.get("base_url", "http://localhost:11434")
+PROMPT_TEMPLATE = _chat_config.get("prompt_template")
+
+NO_INFO_RESPONSE = _chat_config.get(
+    "no_info_response",
+    "I do not have enough information to answer this question based on the provided sources.",
+)
+
+# Logging configuration
+_logging_config = _chat_config.get("logging", {})
+LOG_PROMPT_LENGTH = _logging_config.get("log_prompt_length", True)
+LOG_MODEL_INFO = _logging_config.get("log_model_info", True)
+LOG_INPUT_PARAMS = _logging_config.get("log_input_params", True)
 
 
 class RAG_Chat(ChatOllama):
@@ -48,6 +100,7 @@ class RAG_Chat(ChatOllama):
 
     Attributes:
         model (str): The Ollama model name to use for chat
+        _prompt_template (str): Internal prompt template for RAG responses
 
     Example:
         >>> rag_chat = RAG_Chat(model="llama3.2:latest")
@@ -57,13 +110,14 @@ class RAG_Chat(ChatOllama):
         >>> print(response.content)
     """
 
-    def __init__(self, model=CHAT_MODEL, **kwargs):
+    def __init__(self, model=None, **kwargs):
         """
         Initialize the RAG Chat instance.
 
         Args:
-            model (str, optional): Ollama model name. Defaults to CHAT_MODEL.
+            model (str, optional): Ollama model name. Defaults to configured default.
             **kwargs: Additional arguments passed to ChatOllama parent class.
+                     Common options include temperature, base_url, etc.
 
         Example:
             >>> rag_chat = RAG_Chat(
@@ -72,7 +126,28 @@ class RAG_Chat(ChatOllama):
             ...     base_url="http://localhost:11434"
             ... )
         """
+        # Use configured defaults if not provided
+        if model is None:
+            model = CHAT_MODEL
+        if "temperature" not in kwargs:
+            kwargs["temperature"] = DEFAULT_TEMPERATURE
+        if "base_url" not in kwargs:
+            kwargs["base_url"] = DEFAULT_BASE_URL
+
         super().__init__(model=model, **kwargs)
+
+        # Store prompt template as private attribute to avoid Pydantic validation
+        object.__setattr__(self, "_prompt_template", PROMPT_TEMPLATE)
+
+    @property
+    def prompt_template(self):
+        """Get the current prompt template."""
+        return getattr(self, "_prompt_template", PROMPT_TEMPLATE)
+
+    @prompt_template.setter
+    def prompt_template(self, value):
+        """Set the prompt template."""
+        object.__setattr__(self, "_prompt_template", value)
 
     def chat(self, content, question):
         """
@@ -105,29 +180,42 @@ class RAG_Chat(ChatOllama):
             >>> print(f"Metadata: {response.response_metadata}")
 
         Note:
-            The method uses a carefully crafted prompt that includes multiple
+            The method uses a configurable prompt template that includes multiple
             instructions to prevent the model from using external knowledge
             or generating information not present in the provided documents.
         """
-        logger.debug(f"chat(len:{len(content)}, {question})")
-        logger.debug(f"Model:{self.model}")
+        if LOG_INPUT_PARAMS:
+            logger.debug(f"chat(len:{len(content)}, {question})")
+        if LOG_MODEL_INFO:
+            logger.debug(f"Model:{self.model}")
 
-        PROMPT = f"""
-        Answer the question only using the provided Documents.
-        Your tasks are to follow these instructions:
-            Use ONLY the provided Documents. If the information is not available, respond with: "I do not have enough information to answer this question based on the provided sources."
-            DO NOT invent, assume, or infer information.
-            DO NOT use your internal knowledge.
-            DO NOT answer with any general information.
-            DO NOT add any best practices OUTSIDE of provided Documents.
-            DO NOT answer OUTSIDE of question topic.
-            DO NOT answer OUTSIDE of provided Documents.
-            Use example(s) from Documents only and EXACTLY as it is written in Documents if applicable.
-            Answer the question concisely and shortly.
-            
-        Documents: {content}
-        Question: {question}
-        Answer:"""
-        logger.debug(f"PROMPT length: {len(PROMPT)}")
-        response = self.invoke(PROMPT)
+        # Format the prompt using the configurable template
+        prompt = self.prompt_template.format(content=content, question=question)
+
+        if LOG_PROMPT_LENGTH:
+            logger.debug(f"PROMPT length: {len(prompt)}")
+
+        response = self.invoke(prompt)
         return response
+
+    # def update_prompt_template(self, new_template):
+    #     """
+    #     Update the prompt template for this instance.
+
+    #     Args:
+    #         new_template (str): New prompt template with {content} and {question} placeholders
+
+    #     Example:
+    #         >>> rag_chat.update_prompt_template("Custom prompt: {content} Question: {question}")
+    #     """
+    #     self.prompt_template = new_template
+    #     logger.info("Prompt template updated")
+
+    # def get_default_response(self):
+    #     """
+    #     Get the configured default response for when no information is available.
+
+    #     Returns:
+    #         str: Default "no information" response
+    #     """
+    #     return NO_INFO_RESPONSE

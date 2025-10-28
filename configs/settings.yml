@@ -1,12 +1,75 @@
 # Database Configuration
 database:
-  persist_directory: "./db"
+  persist_directory: "./chroma_db"
   collection_name: "docs"
   ollama_embeddings_model: "mxbai-embed-large"
   chunk_size: 256
   chunk_overlap: 50
   default_k: 3
 
+# Application Configuration
+app:
+  title: "Web UI with Loader and Retriever"
+  layout: "wide"
+  sidebar_state: "expanded"
+  
+# Model Configuration  
+models:
+  available_models:
+    - "llama3.2:latest"
+    - "phi3:latest" 
+    - "qwen3:4b"
+  default_model: "llama3.2:latest"  # Override CHAT_MODEL if needed
+  
+# URL Configuration
+data_sources:
+  jamk_urls:
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis/bachelors-thesis/"
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis/masters-thesis/"
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis/assessment-criteria/"
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis/key-issues-of-thesis-guidance/"
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis/publicity/"
+    - "https://www.jamk.fi/en/for-students/degree-student/regulations-and-principles"
+    - "https://www.jamk.fi/en/media/41521"
+    - "https://www.jamk.fi/en/for-students/degree-student/study-guidance-and-guidance-staff/principles-of-guidance-at-jamk"
+    - "https://help.jamk.fi/opinnaytetyo/en/project-plan/thesis-plan/"
+    - "https://help.jamk.fi/opinnaytetyo/wp-content/uploads/sites/114/2023/11/Thesis-process-scheduling-achievable.pdf"
+    - "https://help.jamk.fi/opinnaytetyo/en/archiving-and-publishing/"
+    - "https://help.jamk.fi/opinnaytetyon-ohjaus/en/3-thesis-process/"
+    - "https://help.jamk.fi/raportointiohje/en/4-parts-of-the-thesis/4-2-the-main-part-of-the-thesis-various-approaches/"
+    - "https://help.jamk.fi/raportointiohje/en/5-use-of-sources/"
+    - "https://help.jamk.fi/opinnaytetyo/en/project-plan/data-management-plan/"
+    - "https://help.jamk.fi/raportointiohje/en/"
+    - "https://help.jamk.fi/raportointiohje/fi/"
+    - "https://help.jamk.fi/opinnaytetyo/en/thesis-project/tasks-to-complete-before-starting-your-thesis/topic-proposal/"
+    - "https://help.jamk.fi/opinnaytetyo/fi/opinnaytetyoprojekti/opinnaytetyon-aloittamista-edeltavat-tehtavat/aihe-ehdotus/"
+    - "https://help.jamk.fi/raportointiohje/en/preparing-written-assignments-at-jamk-university-of-applied-sciences/"
+    - "https://help.jamk.fi/raportointiohje/en/2-acquisition-of-information-for-a-thesis/"
+    - "https://help.jamk.fi/raportointiohje/fi/2-tiedonhankinta-opinnaytetyohon/"
+    - "https://help.jamk.fi/opinnaytetyo/en/project-plan/"
+    - "https://help.jamk.fi/opinnaytetyo/fi/opinnaytetyon-suunnittelu/"
+    - "https://help.jamk.fi/raportointiohje/en/3-the-writing-process/"
+    - "https://help.jamk.fi/raportointiohje/fi/3-kirjoittamisprosessi/"
+    - "https://help.jamk.fi/raportointiohje/en/3-the-writing-process/plagiarism-prevention/"
+    - "https://help.jamk.fi/raportointiohje/fi/3-kirjoittamisprosessi/tekstin-samankaltaisuuden-tarkistus/"
+    - "https://help.jamk.fi/raportointiohje/en/4-parts-of-the-thesis/"
+    - "https://help.jamk.fi/raportointiohje/fi/4-opinnaytetyon-rakenne/"
+    - "https://help.jamk.fi/raportointiohje/en/4-parts-of-the-thesis/4-1-the-first-part-of-the-thesis/4-1-2-description-page/"
+    - "https://help.jamk.fi/raportointiohje/fi/4-opinnaytetyon-rakenne/4-1-opinnaytetyon-alkuosa/4-1-2-kuvailulehti/"
+    - "https://help.jamk.fi/raportointiohje/fi/5b-lahteiden-kaytto-2/"
+    - "https://help.jamk.fi/opinnaytetyo/en/project-plan/assessment-criteria/"
+    - "https://help.jamk.fi/opinnaytetyo/fi/opinnaytetyon-suunnittelu/arviointikriteerit/"
+    - "https://help.jamk.fi/opinnaytetyon-ohjaus/en/data-management-plan/"
+    - "https://help.jamk.fi/opinnaytetyon-ohjaus/fi/aineistonhallinta/"
+    - "https://help.jamk.fi/raportointiohje/en/7-appearance-of-the-thesis/"
+    - "https://help.jamk.fi/raportointiohje/fi/7-kirjallisen-tehtavan-ulkoasu/"
+    - "https://help.jamk.fi/opinnaytetyo/wp-content/uploads/sites/114/2024/08/YAMK-Arviointikriteerit-2024-EN.pdf"
+    - "https://help.jamk.fi/opinnaytetyo/wp-content/uploads/sites/114/2024/08/YAMK-Arviointikriteerit-2024-FI.pdf"
+
+# Network Configuration
+network:
+  request_timeout: 30
+  max_retries: 3
 
 # Datasource Loader Configuration  
 source_loader:
@@ -47,3 +110,51 @@ source_loader:
     ul: 
     -  nav-primary__menu-items
 
+# Storage Configuration
+storage:
+  results_directory: "chat_session_records"
+  results_filename: "chat_output.csv"
+  
+# UI Configuration
+ui:
+  progress_display:
+    max_lines: 6
+    operation_text: "Operation in progress"
+  messages:
+    load_success: "URLs loaded and stored into vector database successfully!"
+    no_documents: "No documents found."
+    db_not_initialized: "Vector database collection not initialized. Please load data first."
+    results_stored: "Chat results stored to"
+    no_results: "No results stored yet."
+
+# Chat Configuration
+chat:
+  temperature: 0.0
+  base_url: "http://localhost:11434"
+  
+  # RAG Prompt Template
+  prompt_template: |
+    Answer the question only using the provided Documents.
+    Your tasks are to follow these instructions:
+        Use ONLY the provided Documents. If the information is not available, respond with: "I do not have enough information to answer this question based on the provided sources."
+        DO NOT invent, assume, or infer information.
+        DO NOT use your internal knowledge.
+        DO NOT answer with any general information.
+        DO NOT add any best practices OUTSIDE of provided Documents.
+        DO NOT answer OUTSIDE of question topic.
+        DO NOT answer OUTSIDE of provided Documents.
+        Use example(s) from Documents only and EXACTLY as it is written in Documents if applicable.
+        Answer the question concisely and shortly.
+        
+    Documents: {content}
+    Question: {question}
+    Answer:
+  
+  # Fallback response when no information available
+  no_info_response: "I do not have enough information to answer this question based on the provided sources."
+  
+  # Logging configuration
+  logging:
+    log_prompt_length: true
+    log_model_info: true
+    log_input_params: true
