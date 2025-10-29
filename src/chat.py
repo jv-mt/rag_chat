@@ -32,12 +32,14 @@ from langchain_ollama import ChatOllama
 from tg_logger import setup_logger
 import yaml
 import os
+from typing import Dict, Any, Union, List, Optional
+from langchain_core.messages import AIMessage
 
 logger = setup_logger()
 print(f"Logger set up: {logger.name}")
 
 
-def load_config(config_file="configs/settings.yml"):
+def load_chat_config(config_file: str = "configs/settings.yml") -> Dict[str, Any]:
     """
     Load chat configuration from YAML file.
 
@@ -45,11 +47,14 @@ def load_config(config_file="configs/settings.yml"):
         config_file (str): Path to configuration file
 
     Returns:
-        dict: Chat configuration dictionary
+        Dict[str, Any]: Chat configuration dictionary
 
     Raises:
         FileNotFoundError: If configuration file doesn't exist
         yaml.YAMLError: If configuration file is invalid
+
+    Note:
+        Returns empty dict if file is missing or invalid, with appropriate logging
     """
     try:
         with open(config_file, "r") as f:
@@ -66,7 +71,7 @@ def load_config(config_file="configs/settings.yml"):
 
 
 # Load configuration
-config = load_config()
+config = load_chat_config()
 
 # Extract configuration values with fallbacks
 CHAT_MODEL = config["models"]["default_model"]
@@ -110,12 +115,12 @@ class RAG_Chat(ChatOllama):
         >>> print(response.content)
     """
 
-    def __init__(self, model=None, **kwargs):
+    def __init__(self, model: Optional[str] = None, **kwargs) -> None:
         """
         Initialize the RAG Chat instance.
 
         Args:
-            model (str, optional): Ollama model name. Defaults to configured default.
+            model (Optional[str]): Ollama model name. Defaults to configured default.
             **kwargs: Additional arguments passed to ChatOllama parent class.
                      Common options include temperature, base_url, etc.
 
@@ -140,16 +145,24 @@ class RAG_Chat(ChatOllama):
         object.__setattr__(self, "_prompt_template", PROMPT_TEMPLATE)
 
     @property
-    def prompt_template(self):
-        """Get the current prompt template."""
+    def prompt_template(self) -> str:
+        """Get the current prompt template.
+
+        Returns:
+            str: The current prompt template string
+        """
         return getattr(self, "_prompt_template", PROMPT_TEMPLATE)
 
     @prompt_template.setter
-    def prompt_template(self, value):
-        """Set the prompt template."""
+    def prompt_template(self, value: str) -> None:
+        """Set the prompt template.
+
+        Args:
+            value (str): New prompt template string
+        """
         object.__setattr__(self, "_prompt_template", value)
 
-    def chat(self, content, question):
+    def chat(self, content: Union[List[str], str], question: str) -> AIMessage:
         """
         Generate a response based on provided documents and user question.
 
@@ -160,8 +173,8 @@ class RAG_Chat(ChatOllama):
         4. Logging the interaction for debugging purposes
 
         Args:
-            content (list[str] or str): Document content to use as context.
-                                      Can be a list of document strings or single string.
+            content (Union[List[str], str]): Document content to use as context.
+                                            Can be a list of document strings or single string.
             question (str): User's question about the thesis guidance topic.
 
         Returns:
@@ -198,24 +211,35 @@ class RAG_Chat(ChatOllama):
         response = self.invoke(prompt)
         return response
 
-    # def update_prompt_template(self, new_template):
-    #     """
-    #     Update the prompt template for this instance.
+    def update_prompt_template(self, new_template: str) -> None:
+        """
+        Update the prompt template for this instance.
 
-    #     Args:
-    #         new_template (str): New prompt template with {content} and {question} placeholders
+        Args:
+            new_template (str): New prompt template with {content} and {question} placeholders
 
-    #     Example:
-    #         >>> rag_chat.update_prompt_template("Custom prompt: {content} Question: {question}")
-    #     """
-    #     self.prompt_template = new_template
-    #     logger.info("Prompt template updated")
+        Returns:
+            None
 
-    # def get_default_response(self):
-    #     """
-    #     Get the configured default response for when no information is available.
+        Side Effects:
+            - Updates the internal prompt template
+            - Logs the template update
 
-    #     Returns:
-    #         str: Default "no information" response
-    #     """
-    #     return NO_INFO_RESPONSE
+        Example:
+            >>> rag_chat.update_prompt_template("Custom prompt: {content} Question: {question}")
+        """
+        self.prompt_template = new_template
+        logger.info("Prompt template updated")
+
+    def get_default_response(self) -> str:
+        """
+        Get the configured default response for when no information is available.
+
+        Returns:
+            str: Default "no information" response from configuration
+
+        Example:
+            >>> default_msg = rag_chat.get_default_response()
+            >>> print(default_msg)  # "I do not have enough information..."
+        """
+        return NO_INFO_RESPONSE

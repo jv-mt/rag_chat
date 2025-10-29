@@ -6,6 +6,7 @@ database:
   chunk_size: 256
   chunk_overlap: 50
   default_k: 3
+  type: "chroma"
 
 # Application Configuration
 app:
@@ -23,7 +24,7 @@ models:
   
 # URL Configuration
 data_sources:
-  jamk_urls:
+  urls:
     - "https://help.jamk.fi/opinnaytetyo/en/thesis/bachelors-thesis/"
     - "https://help.jamk.fi/opinnaytetyo/en/thesis/masters-thesis/"
     - "https://help.jamk.fi/opinnaytetyo/en/thesis/assessment-criteria/"
@@ -113,7 +114,7 @@ source_loader:
 # Storage Configuration
 storage:
   results_directory: "chat_session_records"
-  results_filename: "chat_output.csv"
+  results_filename: "chat_results.csv"
   
 # UI Configuration
 ui:

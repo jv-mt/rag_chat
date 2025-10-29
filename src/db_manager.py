@@ -40,7 +40,7 @@ import langchain_core
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import SentenceTransformersTokenTextSplitter
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -103,23 +103,27 @@ class DB_Manager:
         self.persist_directory = self.config["database"]["persist_directory"]
         self.setup_vector_database()
 
-    def setup_vector_database(self):
+    def setup_vector_database(self) -> None:
         """
-        Set up the vector database components.
+        Initialize vector database components and create collection.
 
-        This method initializes:
-        1. Persistence directory creation
-        2. Ollama embeddings with CPU device configuration
-        3. Chroma vector database instance
-        4. Document collection setup
+        This method sets up the complete vector database infrastructure:
+        1. Creates persistence directory if needed
+        2. Initializes Ollama embeddings with configured model
+        3. Creates or connects to Chroma vector database
+        4. Sets up document collection for storage
 
-        The method ensures all components are properly configured and ready
-        for document storage and retrieval operations.
+        The setup process ensures all components are properly configured
+        and ready for document storage and retrieval operations.
 
         Side Effects:
-        - Creates persistence directory if it doesn't exist
-        - Creates or connects to Chroma database
-        - Sets up document collection
+            - Creates persistence directory if it doesn't exist
+            - Creates or connects to Chroma database
+            - Sets up document collection
+            - Initializes embedding model
+
+        Raises:
+            Exception: If database initialization fails
         """
         logger.debug("Setup Database.")
         if not os.path.exists(self.persist_directory):
@@ -130,6 +134,12 @@ class DB_Manager:
             )
             logger.debug(f"Embeddings:{self.embeddings}")
         if self.vector_database is None:
+            logger.debug(f"Creating Chroma database in {self.persist_directory}")
+            logger.debug(
+                f"Collection name: {self.config['database']['collection_name']}"
+            )
+            logger.debug(f"Embeddings: {self.embeddings}")
+            logger.debug(f"Persist directory: {self.persist_directory}")
             self.vector_database = Chroma(
                 collection_name=self.config["database"]["collection_name"],
                 persist_directory=self.persist_directory,
@@ -142,20 +152,16 @@ class DB_Manager:
             )
         logger.debug(f"Collection:{self.collection}")
 
-    def load_config(self):
+    def load_config(self) -> Dict[str, Any]:
         """
         Load configuration from YAML file.
 
         Returns:
-            dict: Configuration dictionary loaded from YAML file
+            Dict[str, Any]: Configuration dictionary
 
         Raises:
             FileNotFoundError: If configuration file doesn't exist
             yaml.YAMLError: If YAML parsing fails
-
-        Example:
-            >>> config = db.load_config()
-            >>> tags_to_remove = config["source_loader"]["tags_by_name"]
         """
         try:
             with open(self.config_file, "r") as file:
@@ -213,11 +219,7 @@ class DB_Manager:
 
     def clean_html(self, response: requests.Response, url: str) -> str:
         """
-        Clean HTML content by removing unwanted elements.
-
-        This method processes HTML responses to extract clean text content
-        suitable for vector database storage. It removes specified HTML tags
-        and elements based on configuration settings.
+        Clean HTML content by removing unwanted elements and extracting text.
 
         Args:
             response (requests.Response): HTTP response containing HTML content
@@ -227,11 +229,15 @@ class DB_Manager:
             str: Cleaned text content with normalized whitespace
 
         The cleaning process:
-        1. Parses HTML with BeautifulSoup
-        2. Removes tags specified in configuration
-        3. Removes elements by class name
-        4. Extracts and normalizes text content
-        5. Performs memory cleanup
+            1. Parses HTML with BeautifulSoup
+            2. Removes unwanted tags by name (from configuration)
+            3. Removes elements by class name (from configuration)
+            4. Extracts clean text content
+            5. Normalizes whitespace and formatting
+
+        Side Effects:
+            - Performs garbage collection for memory management
+            - Logs cleaning operations and errors
 
         Example:
             >>> response = requests.get("https://example.com/thesis-guide")
@@ -264,32 +270,27 @@ class DB_Manager:
 
     def chunk_sources(self, s: str) -> List[str]:
         """
-        Split text content into manageable chunks for processing.
-
-        This method uses SentenceTransformersTokenTextSplitter to divide
-        large text content into smaller, overlapping chunks suitable for
-        embedding and vector database storage.
+        Split text content into manageable chunks for embedding.
 
         Args:
             s (str): Input text to be chunked
 
         Returns:
-            List[str]: List of text chunks with specified overlap
-
-        Raises:
-            Exception: If text splitting fails
+            List[str]: List of text chunks, empty list if chunking fails
 
         The chunking strategy:
-        - Uses sentence-aware splitting
-        - Maintains semantic coherence
-        - Includes overlap between chunks for context preservation
+            - Uses sentence-aware splitting
+            - Maintains semantic coherence
+            - Includes overlap between chunks for context preservation
+            - Configurable chunk size and overlap from settings
+
+        Raises:
+            Exception: If text splitting fails (logged and re-raised)
 
         Example:
             >>> long_text = "This is a very long document about thesis writing..."
             >>> chunks = db.chunk_sources(long_text)
             >>> print(f"Created {len(chunks)} chunks")
-            >>> for i, chunk in enumerate(chunks[:3]):
-            ...     print(f"Chunk {i}: {chunk[:50]}...")
         """
         text_splitter = SentenceTransformersTokenTextSplitter(
             chunk_size=self.config["database"]["chunk_size"],
@@ -302,20 +303,25 @@ class DB_Manager:
             logger.error(f"Chunking error: {e}")
             raise e
 
-    def clean_metadata(self, metadata: dict) -> dict:
+    def clean_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Clean and normalize metadata dictionary.
+        Clean and standardize document metadata.
 
         Args:
-            metadata (dict): Raw metadata dictionary
+            metadata (Dict[str, Any]): Raw metadata dictionary
 
         Returns:
-            dict: Cleaned metadata with None values replaced by empty strings
+            Dict[str, Any]: Cleaned metadata with None values replaced by empty strings
+
+        This method processes metadata to ensure consistency:
+            - Replaces None values with empty strings
+            - Preserves all other data types
+            - Maintains original structure
 
         Example:
-            >>> raw_meta = {"title": "Thesis Guide", "author": None, "page": 1}
-            >>> clean_meta = db.clean_metadata(raw_meta)
-            >>> print(clean_meta)  # {"title": "Thesis Guide", "author": "", "page": 1}
+            >>> metadata = {"title": "Document", "author": None, "page": 1}
+            >>> cleaned = db.clean_metadata(metadata)
+            >>> print(cleaned)  # {"title": "Document", "author": "", "page": 1}
         """
         return {
             key: (value if value is not None else "") for key, value in metadata.items()
