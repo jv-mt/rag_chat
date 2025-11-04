@@ -364,15 +364,102 @@ class DB_Manager:
 | **HTML Processing** | BeautifulSoup4 | Latest | HTML cleaning |
 | **Text Splitting** | SentenceTransformers | Latest | Semantic chunking |
 
+### Module Dependencies
+
+#### Internal Module Imports
+
+```mermaid
+graph LR
+    subgraph "Application Modules"
+        App[app.py]
+        Chat[chat.py]
+        DB[db_manager.py]
+        Logger[tg_logger.py]
+    end
+
+    subgraph "Configuration"
+        Settings[settings.yml]
+        LogConfig[logger_config.yml]
+    end
+
+    subgraph "External Libraries"
+        ST[streamlit]
+        LC[langchain-*]
+        YAML[PyYAML]
+        CL[colorlog]
+        BS[beautifulsoup4]
+        PDF[pymupdf]
+    end
+
+    App -->|imports| Chat
+    App -->|imports| DB
+    App -->|imports| Logger
+    App -->|uses| ST
+    App -->|uses| LC
+    App -->|reads| Settings
+
+    Chat -->|imports| Logger
+    Chat -->|uses| LC
+    Chat -->|reads| Settings
+
+    DB -->|imports| Logger
+    DB -->|uses| LC
+    DB -->|uses| BS
+    DB -->|uses| PDF
+    DB -->|reads| Settings
+
+    Logger -->|uses| YAML
+    Logger -->|uses| CL
+    Logger -->|reads| LogConfig
+
+    style App fill:#e1f5ff
+    style Chat fill:#fff4e1
+    style DB fill:#fff4e1
+    style Logger fill:#fff4e1
+    style Settings fill:#e8f5e9
+    style LogConfig fill:#e8f5e9
+```
+
+**Import Hierarchy**:
+1. **tg_logger.py** (No internal dependencies)
+   - Imports: `logging`, `yaml`, `colorlog`
+   - Reads: `logger_config.yml`
+
+2. **chat.py** (Depends on: tg_logger)
+   - Imports: `tg_logger`, `langchain_ollama`, `yaml`
+   - Reads: `settings.yml`
+
+3. **db_manager.py** (Depends on: tg_logger)
+   - Imports: `tg_logger`, `langchain_chroma`, `langchain_ollama`, `langchain_text_splitters`, `beautifulsoup4`, `pymupdf`, `yaml`
+   - Reads: `settings.yml`
+
+4. **app.py** (Depends on: chat, db_manager, tg_logger)
+   - Imports: `chat`, `db_manager`, `tg_logger`, `streamlit`, `langchain_ollama`, `pandas`, `yaml`
+   - Reads: `settings.yml`
+
 ### Python Dependencies
 
 See `requirements.txt` for complete list:
+
+**Core Framework**:
 - `langchain-core`: Core LangChain functionality
 - `langchain-chroma`: Chroma vector store integration
 - `langchain-ollama`: Ollama LLM integration
 - `langchain-text-splitters`: Text chunking utilities
-- `PyYAML`: Configuration management
-- `colorlog`: Enhanced logging
+
+**Document Processing**:
+- `beautifulsoup4`: HTML parsing and cleaning
+- `pymupdf`: PDF text extraction
+- `pymupdf4llm`: LLM-optimized PDF processing
+- `sentence-transformers`: Semantic text splitting
+
+**Configuration & Logging**:
+- `PyYAML`: Configuration file management
+- `colorlog`: Enhanced colorized logging
+
+**Web Interface**:
+- `streamlit`: Web UI framework (installed separately)
+- `pandas`: Data manipulation for results display
 
 ### External Services
 
