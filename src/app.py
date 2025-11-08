@@ -33,7 +33,6 @@ Author: Jukka Veijanen
 """
 
 import json
-from langchain_ollama import OllamaLLM
 import pandas as pd
 import time
 from collections import deque
@@ -45,9 +44,8 @@ from tg_logger import setup_logger
 import gc
 import requests
 import yaml
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import streamlit as st
-from langchain_core.documents.base import Document
 
 VECTOR_DATABASE = "vector_database"
 SESSION_STORAGE = "results"
@@ -192,16 +190,42 @@ def retrieve_documents(query) -> list[dict]:
 
 def get_urls() -> List[str]:
     """
-    Get the list of JAMK thesis guidance URLs from configuration.
+    Get the list of JAMK thesis guidance URLs from file specified in configuration.
 
     Returns:
         List[str]: List of URLs containing thesis guidance information
 
+    Raises:
+        FileNotFoundError: If the URLs file specified in configuration doesn't exist
+        ValueError: If no URLs file is configured
+
     Note:
-        URLs are loaded from the configuration file under data_sources.urls.
-        This allows for easy maintenance and updates without code changes.
+        URLs are loaded from a text file (one URL per line) specified in the
+        configuration file under data_sources.urls_file. Empty lines and lines
+        starting with '#' are ignored. This allows for easy maintenance and
+        updates without code changes.
     """
-    return config.get("data_sources", {}).get("urls", [])
+    urls_file = config.get("data_sources", {}).get("urls_file")
+
+    if not urls_file:
+        logger.error("No URLs file configured in data_sources.urls_file")
+        raise ValueError("URLs file not configured in settings")
+
+    try:
+        with open(urls_file, "r", encoding="utf-8") as f:
+            urls = [
+                line.strip()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            ]
+        logger.info(f"Loaded {len(urls)} URLs from {urls_file}")
+        return urls
+    except FileNotFoundError:
+        logger.error(f"URLs file not found: {urls_file}")
+        raise
+    except Exception as e:
+        logger.error(f"Error reading URLs file {urls_file}: {e}")
+        raise
 
 
 def load_source_dataset() -> None:
@@ -423,26 +447,107 @@ def chat_with_model(documents: List[Dict[str, Any]], input_text: str) -> None:
         logger.error(f"Chat error: {e}")
         st.error(f"Failed to process chat query: {e}")
         return
+    # Display response in a container
     st.write("### Response")
-    st.markdown(chat_response.content)
-    st.markdown("--")
-    st.markdown("duration: {duration} seconds".format(duration=duration))
-    st.markdown(chat_response.response_metadata)
+    with st.container(border=True):
+        st.markdown(chat_response.content)
+
+        # Metadata in expander for cleaner UI
+        with st.expander("📊 Response Metadata", expanded=False):
+            st.caption(f"⏱️ Duration: {duration:.2f} seconds")
+            st.json(chat_response.response_metadata)
+
     st.divider()
+
+    # Display retrieved documents in organized containers
     st.write("### Retrieved Documents")
+    st.caption(f"Found {len(documents)} relevant document(s)")
+
     page_contents = [doc.get("result").page_content for doc in documents]
-    for i, doc in enumerate(documents):
-        st.markdown(doc.get("result").metadata)
-        st.markdown(doc.get("result").page_content)
-        st.markdown(f"Score: {doc.get('score')}")
-        st.divider()
+
+    # Documents section with better error handling and structured labeling
+    for i, doc in enumerate(documents, start=1):
+        try:
+            doc_result = doc.get("result")
+            if doc_result is None:
+                st.error(f"Document {i} result is None")
+                continue
+
+            doc_score = doc.get("score", 0.0)
+            doc_metadata = doc_result.metadata
+            doc_content = doc_result.page_content
+
+            # Get source information for the title
+            source = doc_metadata.get("source", "Unknown Source")
+            source_name = source.split("/")[-1] if "/" in source else source
+
+            # Create unique document identifier for client-side processing
+            doc_id = f"doc-{i}"
+
+            # Create structured document label with machine-readable attributes
+            doc_label = {
+                "id": doc_id,
+                "index": i,
+                "source": source,
+                "source_name": source_name,
+                "relevance_score": doc_score,
+                "content_length": len(doc_content) if doc_content else 0,
+            }
+
+            # Create expander with proper title and leave first one expanded
+            # Use data attributes for client-side accessibility
+            with st.expander(
+                f"📄 Document {i}: {source_name} (Relevance: {doc_score:.3f})",
+                expanded=(i == 1),
+            ):
+                # Add machine-readable document label at the top with full doc_label data
+                doc_label_json = json.dumps(doc_label)
+                st.markdown(
+                    f'<div id="doc-label-{i}" class="doc-label" data-doc-id="{doc_id}" data-doc-index="{i}" data-doc-source="{source}" data-doc-score="{doc_score:.3f}" data-doc-label=\'{doc_label_json}\'></div>',
+                    unsafe_allow_html=True,
+                )
+
+                # Show content info
+                st.caption(
+                    f"Content length: {len(doc_content) if doc_content else 0} characters"
+                )
+
+                # Metadata section with structured labeling
+                with st.container():
+                    st.markdown("**📋 Metadata**")
+                    col1, col2 = st.columns([1, 2])
+                    with col1:
+                        st.metric("Relevance Score", f"{doc_score:.3f}")
+                    with col2:
+                        st.caption("Source Information")
+                        st.json(doc_metadata)
+
+                st.divider()
+
+                # Content section with labeled container for easy extraction
+                with st.container():
+                    st.markdown("**📖 Content**")
+                    if doc_content and doc_content.strip():
+                        # Wrap content in labeled div for client-side extraction
+                        st.markdown(
+                            f'<div class="document-content" data-doc-id="{doc_id}">',
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(doc_content)
+                        st.markdown("</div>", unsafe_allow_html=True)
+                    else:
+                        st.warning("No content available for this document")
+
+        except Exception as e:
+            st.error(f"Error loading document {i}: {str(e)}")
+
     store_chat_results(
         duration,
         active_model,
         input_text,
         chat_response.content,
         chat_response.response_metadata,
-        page_contents[:2],
+        page_contents,
     )
     gc.collect()
 
@@ -470,7 +575,7 @@ def retrieve() -> None:
         - Manages user interactions
         - Displays chat history and results
     """
-    chat_tab, results_tab = st.tabs(["Chat", "Results"])
+    chat_tab, history_tab = st.tabs(["Chat", "History"])
     with chat_tab:
         input_text = st.text_input("Enter your question into text box below:")
         if st.button("Submit"):
@@ -484,10 +589,11 @@ def retrieve() -> None:
                 )
                 st.write(no_docs_message)
                 raise ValueError("No documents found.")
-    with results_tab:
+    with history_tab:
         st.write("### Stored Chat Results")
         initialize_session_storage()
         df = st.session_state[SESSION_STORAGE]
+        # st.dataframe(df, width=True)
         st.dataframe(df, use_container_width=True)
         if df.empty:
             no_results_message = ui_config.get("messages", {}).get(
