@@ -156,6 +156,12 @@ Contributions are welcome! Please see our [Development Guide](docs/DEVELOPMENT.m
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+👤 Author
+**Jukka Veijanen**  
+🔗 LinkedIn: linkedin.com/in/jukkaveijanen  
+🎓 RAG Chatbot for Thesis Guidance  
+📎 Related project: [chat_eval](https://github.com/jv-mt/chat_eval)  
+
 ## 🙏 Acknowledgments
 
 - **JAMK University of Applied Sciences** for thesis guidance documentation
@@ -171,6 +177,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: Proof of Concept
-**Author**: Jukka Veijanen
-**Version**: 1.0.0-PoC
-**Last Updated**: 2025-10-29
